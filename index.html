@@ -28,65 +28,82 @@
       image-rendering: pixelated;
       image-rendering: -moz-crisp-edges;
       image-rendering: crisp-edges; }
-  /* 드래그 조이스틱 표시 (시각 피드백) */
-  #joystick-hint {
-      position: absolute;
-      pointer-events: none;
-      border: 3px solid rgba(34, 211, 238, 0.6);
-      border-radius: 50%;
-      width: 80px; height: 80px;
-      transform: translate(-50%, -50%);
-      opacity: 0; transition: opacity 0.15s;
-      z-index: 40;
-  }
-  #joystick-hint.active { opacity: 1; }
-  #joystick-hint::after {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      background: #fde047;
-      box-shadow: 0 0 10px rgba(253, 224, 71, 0.8);
+  #controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background: #000;
+      height: 180px;
+      border-top: 2px solid #22d3ee;
+      gap: 10px;
   }
 
-  #jump-btn {
+  /* 방향키 십자 배열 */
+  #dpad {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      flex-shrink: 0;
+  }
+
+  .ctrl-btn {
       position: absolute;
-      bottom: 30px; right: 30px;
-      width: 90px; height: 90px;
+      background: #1e1b4b;
+      border: 3px solid #22d3ee;
+      border-radius: 8px;
+      color: #22d3ee;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 0 #0e7490, inset 0 0 10px rgba(34, 211, 238, 0.3);
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+  }
+
+  .ctrl-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #0e7490;
+  }
+
+  .ctrl-up    { top: 0;    left: 50px; width: 50px; height: 50px; }
+  .ctrl-left  { top: 50px; left: 0;    width: 50px; height: 50px; }
+  .ctrl-right { top: 50px; left: 100px; width: 50px; height: 50px; }
+  .ctrl-down  { top: 100px; left: 50px; width: 50px; height: 50px; }
+
+  /* 점프 버튼 - 우측 */
+  #jump-btn {
+      width: 85px;
+      height: 85px;
       background: #7f1d1d;
       border: 4px solid #fbbf24;
       border-radius: 50%;
       color: #fde047;
       font-family: 'Press Start 2P', monospace;
-      font-size: 14px; font-weight: 900;
+      font-size: 13px;
+      font-weight: 900;
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 5px 0 #92400e, 0 0 20px rgba(251, 191, 36, 0.5),
-                  inset 0 0 15px rgba(251, 191, 36, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 0 #92400e, 0 0 15px rgba(251, 191, 36, 0.4),
+                  inset 0 0 10px rgba(251, 191, 36, 0.3);
       letter-spacing: 1px;
-      z-index: 50;
       touch-action: manipulation;
       -webkit-user-select: none;
       user-select: none;
-  }
-  #jump-btn:active {
-      transform: translateY(3px);
-      box-shadow: 0 2px 0 #92400e, 0 0 15px rgba(251, 191, 36, 0.7);
+      flex-shrink: 0;
+      margin-right: 10px;
   }
 
-  #swipe-hint {
-      position: absolute;
-      top: 50%; left: 20px;
-      transform: translateY(-50%);
-      color: rgba(34, 211, 238, 0.4);
-      font-size: 9px;
-      pointer-events: none;
-      z-index: 35;
-      letter-spacing: 1px;
-      line-height: 1.8;
-      font-family: 'Press Start 2P', monospace;
+  #jump-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #92400e, 0 0 15px rgba(251, 191, 36, 0.6);
   }
   .overlay { position: absolute; top: 0; left: 0;
       width: 100%; height: 100%;
@@ -160,9 +177,8 @@
         🍎 과일 <strong>30pt</strong><br>
         🏺 호리병 <strong>50pt</strong><br>
         <span class="danger">▼ 덫 · 👾 적 피하기!</span><br><br>
-        📱 화면 <strong>드래그</strong>로 이동<br>
-        ⬆ 위 드래그 = 사다리<br>
-        🔴 <strong>점프 버튼</strong>으로 점프
+        <strong>←→</strong> 이동 · <strong>↑</strong> 사다리<br>
+        <strong>JUMP</strong> 점프
       </div>
       <button class="btn" id="start-btn">START</button>
       <div class="best">BEST · <span id="best-start">0</span></div>
@@ -173,9 +189,15 @@
       <div class="best">BEST · <span id="best-end">0</span></div>
       <button class="btn" id="retry-btn" style="margin-top: 25px;">RETRY</button>
     </div>
-    <div id="swipe-hint">DRAG<br>TO<br>MOVE</div>
-    <div id="joystick-hint"></div>
-    <button id="jump-btn">JUMP</button>
+  </div>
+  <div id="controls">
+    <div id="dpad">
+      <button class="ctrl-btn ctrl-up" data-key="up">▲</button>
+      <button class="ctrl-btn ctrl-left" data-key="left">◀</button>
+      <button class="ctrl-btn ctrl-right" data-key="right">▶</button>
+      <button class="ctrl-btn ctrl-down" data-key="down">▼</button>
+    </div>
+    <button id="jump-btn" data-key="jump">JUMP</button>
   </div>
 </div>
 <script>
@@ -822,135 +844,106 @@
     else if (e.key === ' ' || e.key === 'z' || e.key === 'x') keys.jump = false;
   });
 
-  // ==================== 드래그 기반 조작 ====================
-  const joystickHint = document.getElementById('joystick-hint');
-  const jumpBtn = document.getElementById('jump-btn');
-  const swipeHint = document.getElementById('swipe-hint');
+  // ============================================================
+  // 멀티터치 버튼 처리
+  // 각 터치 포인터가 어느 버튼 위에 있는지 추적
+  // ============================================================
 
-  let dragActive = false;
-  let dragStartX = 0, dragStartY = 0;
-  let dragTouchId = null;
-  const DRAG_DEADZONE = 8;  // 이 거리 이하는 움직임 인식 안 함
-  const DRAG_THRESHOLD = 20; // 이 거리 이상이면 방향 확정
+  const allButtons = document.querySelectorAll('.ctrl-btn, #jump-btn');
 
-  function startDrag(x, y, touchId) {
-    if (dragActive) return;
-    dragActive = true;
-    dragStartX = x;
-    dragStartY = y;
-    dragTouchId = touchId;
-    joystickHint.style.left = x + 'px';
-    joystickHint.style.top = y + 'px';
-    joystickHint.classList.add('active');
-    if (swipeHint) swipeHint.style.display = 'none';
+  // 터치ID -> 현재 누르고 있는 key
+  const activeTouches = new Map();
+
+  function getButtonAtPoint(x, y) {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    // 버튼 자체이거나 버튼 안의 자식
+    const btn = el.closest('[data-key]');
+    if (btn) return btn.dataset.key;
+    return null;
   }
 
-  function moveDrag(x, y) {
-    if (!dragActive) return;
-    const dx = x - dragStartX;
-    const dy = y - dragStartY;
-
-    // 방향 키 리셋
-    keys.left = false;
-    keys.right = false;
-    keys.up = false;
-    keys.down = false;
-
-    // 데드존 밖이면 방향 결정
-    if (Math.abs(dx) > DRAG_DEADZONE || Math.abs(dy) > DRAG_DEADZONE) {
-      // 가로/세로 중 더 큰 방향을 우선 (대각선 이동은 허용 - 좌우 + 위/아래 동시)
-      if (Math.abs(dx) > DRAG_DEADZONE) {
-        if (dx < 0) keys.left = true;
-        else keys.right = true;
-      }
-      if (Math.abs(dy) > DRAG_DEADZONE) {
-        if (dy < 0) keys.up = true;
-        else keys.down = true;
-      }
+  function pressKey(key) {
+    if (key === 'jump') {
+      if (!keys.jump) keys.jumpPressed = true;
     }
+    keys[key] = true;
   }
 
-  function endDrag() {
-    dragActive = false;
-    dragTouchId = null;
-    keys.left = false;
-    keys.right = false;
-    keys.up = false;
-    keys.down = false;
-    joystickHint.classList.remove('active');
+  function releaseKey(key) {
+    if (!key) return;
+    keys[key] = false;
   }
 
-  // 캔버스 컨테이너에서 드래그 이벤트 받기
-  canvasContainer.addEventListener('touchstart', (e) => {
+  // 터치 시작 - 어느 버튼 위에 떨어졌는지 확인
+  document.addEventListener('touchstart', (e) => {
     if (!gameRunning) return;
-    // 점프 버튼 터치는 제외
-    if (e.target === jumpBtn) return;
-    e.preventDefault();
-    initAudio();
-    const touch = e.changedTouches[0];
-    startDrag(touch.clientX, touch.clientY, touch.identifier);
-  }, { passive: false });
-
-  canvasContainer.addEventListener('touchmove', (e) => {
-    if (!gameRunning || !dragActive) return;
-    e.preventDefault();
+    let handled = false;
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
-      if (touch.identifier === dragTouchId) {
-        moveDrag(touch.clientX, touch.clientY);
-        break;
+      const key = getButtonAtPoint(touch.clientX, touch.clientY);
+      if (key) {
+        initAudio();
+        pressKey(key);
+        activeTouches.set(touch.identifier, key);
+        handled = true;
+      }
+    }
+    if (handled) e.preventDefault();
+  }, { passive: false });
+
+  // 터치 이동 - 슬라이드로 다른 버튼에 가면 전환
+  document.addEventListener('touchmove', (e) => {
+    if (!gameRunning) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      if (!activeTouches.has(touch.identifier)) continue;
+      const currentKey = activeTouches.get(touch.identifier);
+      const newKey = getButtonAtPoint(touch.clientX, touch.clientY);
+      if (newKey !== currentKey) {
+        // 이전 키 떼기
+        if (currentKey) releaseKey(currentKey);
+        // 새 키 누르기
+        if (newKey) {
+          pressKey(newKey);
+          activeTouches.set(touch.identifier, newKey);
+        } else {
+          activeTouches.delete(touch.identifier);
+        }
       }
     }
   }, { passive: false });
 
-  canvasContainer.addEventListener('touchend', (e) => {
-    if (!dragActive) return;
+  // 터치 끝
+  function handleTouchEnd(e) {
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
-      if (touch.identifier === dragTouchId) {
-        endDrag();
-        break;
+      if (activeTouches.has(touch.identifier)) {
+        const key = activeTouches.get(touch.identifier);
+        releaseKey(key);
+        activeTouches.delete(touch.identifier);
       }
     }
+  }
+  document.addEventListener('touchend', handleTouchEnd);
+  document.addEventListener('touchcancel', handleTouchEnd);
+
+  // 마우스 (PC 테스트용)
+  allButtons.forEach(btn => {
+    const key = btn.dataset.key;
+    const mousePress = (e) => {
+      e.preventDefault();
+      initAudio();
+      pressKey(key);
+    };
+    const mouseRelease = (e) => {
+      e.preventDefault();
+      releaseKey(key);
+    };
+    btn.addEventListener('mousedown', mousePress);
+    btn.addEventListener('mouseup', mouseRelease);
+    btn.addEventListener('mouseleave', mouseRelease);
   });
-
-  canvasContainer.addEventListener('touchcancel', endDrag);
-
-  // PC 마우스 드래그도 지원
-  canvasContainer.addEventListener('mousedown', (e) => {
-    if (!gameRunning) return;
-    if (e.target === jumpBtn) return;
-    initAudio();
-    startDrag(e.clientX, e.clientY, 'mouse');
-  });
-
-  canvasContainer.addEventListener('mousemove', (e) => {
-    if (!dragActive) return;
-    moveDrag(e.clientX, e.clientY);
-  });
-
-  canvasContainer.addEventListener('mouseup', endDrag);
-  canvasContainer.addEventListener('mouseleave', endDrag);
-
-  // 점프 버튼
-  const jumpPress = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    initAudio();
-    if (!keys.jump) keys.jumpPressed = true;
-    keys.jump = true;
-  };
-  const jumpRelease = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    keys.jump = false;
-  };
-  jumpBtn.addEventListener('touchstart', jumpPress, { passive: false });
-  jumpBtn.addEventListener('touchend', jumpRelease, { passive: false });
-  jumpBtn.addEventListener('touchcancel', jumpRelease);
-  jumpBtn.addEventListener('mousedown', jumpPress);
-  jumpBtn.addEventListener('mouseup', jumpRelease);
-  jumpBtn.addEventListener('mouseleave', jumpRelease);
 
   resize();
   setTimeout(resize, 100);
