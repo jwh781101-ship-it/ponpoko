@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🦝 PONPOKO 너구리 🦝</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden;
+      background: #000; font-family: 'Press Start 2P', monospace;
+      touch-action: manipulation; }
+  #game-wrap { position: relative; width: 100vw; height: 100vh;
+      max-width: 500px; margin: 0 auto;
+      display: flex; flex-direction: column; background: #000; }
+  #hud { display: flex; justify-content: space-around;
+      padding: 8px 10px; background: #000;
+      color: #22d3ee; font-size: 10px; letter-spacing: 1px;
+      z-index: 10; border-bottom: 2px solid #22d3ee; }
+  .hud-item { display: flex; flex-direction: column;
+      align-items: center; gap: 4px; }
+  .hud-label { color: #a5f3fc; opacity: 0.8; font-size: 8px; }
+  .hud-value { color: #fde047; font-size: 11px; }
+  #canvas-container { flex: 1; position: relative; overflow: hidden; background: #000; }
+  canvas { display: block; width: 100%; height: 100%;
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges; }
+  #controls { display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 6px; padding: 12px; background: #000;
+      height: 160px; border-top: 2px solid #22d3ee; }
+  .ctrl-btn { background: #1e1b4b;
+      border: 3px solid #22d3ee;
+      border-radius: 0; color: #22d3ee;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 18px; font-weight: 900; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 3px 0 #0e7490, inset 0 0 10px rgba(34, 211, 238, 0.3); }
+  .ctrl-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0e7490; }
+  .ctrl-btn.jump { background: #7f1d1d; border-color: #fbbf24; color: #fbbf24;
+      box-shadow: 0 3px 0 #92400e, inset 0 0 10px rgba(251, 191, 36, 0.3);
+      font-size: 11px; }
+  .ctrl-btn.jump:active { box-shadow: 0 1px 0 #92400e; }
+  .ctrl-left  { grid-column: 1; grid-row: 1 / span 2; }
+  .ctrl-right { grid-column: 2; grid-row: 1 / span 2; }
+  .ctrl-up    { grid-column: 3; grid-row: 1; }
+  .ctrl-down  { grid-column: 3; grid-row: 2; }
+  .ctrl-jump  { grid-column: 4; grid-row: 1 / span 2; }
+  .overlay { position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      z-index: 100; padding: 25px; text-align: center; }
+  .overlay.hidden { display: none; }
+  .title { font-size: 28px; color: #fbbf24;
+      text-shadow: 3px 3px 0 #dc2626, 6px 6px 0 #7f1d1d;
+      margin-bottom: 10px; letter-spacing: 3px; }
+  .title-kor { font-size: 18px; color: #22d3ee;
+      margin-bottom: 25px; letter-spacing: 6px;
+      text-shadow: 2px 2px 0 #0e7490; }
+  .how-to { background: rgba(34, 211, 238, 0.08);
+      border: 2px solid #22d3ee; padding: 14px 18px;
+      color: #a5f3fc; font-size: 10px; line-height: 1.9;
+      margin-bottom: 20px; max-width: 340px; letter-spacing: 1px; }
+  .how-to strong { color: #fde047; }
+  .how-to .danger { color: #ef4444; }
+  .btn { background: #dc2626; border: 3px solid #fde047;
+      color: white; padding: 14px 40px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px; border-radius: 0; cursor: pointer;
+      box-shadow: 0 4px 0 #7f1d1d, 0 0 15px rgba(220, 38, 38, 0.6);
+      letter-spacing: 2px; margin: 8px 0; }
+  .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7f1d1d; }
+  .score-display { font-size: 32px; color: #fde047;
+      text-shadow: 2px 2px 0 #dc2626; margin: 12px 0; }
+  .best { color: #22d3ee; font-size: 10px; margin-top: 12px; }
+  .best span { color: #fde047; font-size: 13px; }
+  .level-up { position: absolute; top: 40%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px; color: #fde047;
+      text-shadow: 3px 3px 0 #dc2626;
+      pointer-events: none; z-index: 50; opacity: 0;
+      letter-spacing: 3px; }
+  .level-up.show { animation: levelUpPop 1.5s ease-out; }
+  @keyframes levelUpPop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  }
+  .scanline { position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: repeating-linear-gradient(
+          0deg, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px,
+          rgba(0,0,0,0.08) 3px, rgba(0,0,0,0) 4px);
+      pointer-events: none; z-index: 30; }
+</style>
+</head>
+<body>
+<div id="game-wrap">
+  <div id="hud">
+    <div class="hud-item"><span class="hud-label">1UP</span><span class="hud-value" id="score">0</span></div>
+    <div class="hud-item"><span class="hud-label">LV</span><span class="hud-value" id="level">1</span></div>
+    <div class="hud-item"><span class="hud-label">LIFE</span><span class="hud-value" id="life">♥♥♥</span></div>
+    <div class="hud-item"><span class="hud-label">TOP</span><span class="hud-value" id="top-score">0</span></div>
+  </div>
+  <div id="canvas-container">
+    <canvas id="game"></canvas>
+    <div class="scanline"></div>
+    <div id="level-up" class="level-up"></div>
+    <div class="overlay" id="start-screen">
+      <div class="title">PONPOKO</div>
+      <div class="title-kor">너구리</div>
+      <div class="how-to">
+        🦝 <strong>아이템 모두 먹기!</strong><br>
+        🥕 당근 <strong>10pt</strong><br>
+        🍎 과일 <strong>30pt</strong><br>
+        🏺 호리병 <strong>50pt</strong><br>
+        <span class="danger">▼ 덫 · 👾 적 피하기!</span><br><br>
+        <strong>←→</strong> 이동 · <strong>↑</strong> 사다리<br>
+        <strong>JUMP</strong> 점프
+      </div>
+      <button class="btn" id="start-btn">START</button>
+      <div class="best">BEST · <span id="best-start">0</span></div>
+    </div>
+    <div class="overlay hidden" id="gameover-screen">
+      <div class="title" style="font-size: 22px;">GAME OVER</div>
+      <div class="score-display" id="final-score">0</div>
+      <div class="best">BEST · <span id="best-end">0</span></div>
+      <button class="btn" id="retry-btn" style="margin-top: 25px;">RETRY</button>
+    </div>
+  </div>
+  <div id="controls">
+    <button class="ctrl-btn ctrl-left" data-key="left">◀</button>
+    <button class="ctrl-btn ctrl-right" data-key="right">▶</button>
+    <button class="ctrl-btn ctrl-up" data-key="up">▲</button>
+    <button class="ctrl-btn ctrl-down" data-key="down">▼</button>
+    <button class="ctrl-btn jump ctrl-jump" data-key="jump">JUMP</button>
+  </div>
+</div>
+<script>
+(function() {
+  'use strict';
+  const WORLD_W = 240;
+  const WORLD_H = 360;
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('level');
+  const lifeEl = document.getElementById('life');
+  const topScoreEl = document.getElementById('top-score');
+  const startScreen = document.getElementById('start-screen');
+  const gameoverScreen = document.getElementById('gameover-screen');
+  const startBtn = document.getElementById('start-btn');
+  const retryBtn = document.getElementById('retry-btn');
+  const finalScoreEl = document.getElementById('final-score');
+  const bestStartEl = document.getElementById('best-start');
+  const bestEndEl = document.getElementById('best-end');
+  const levelUpEl = document.getElementById('level-up');
+  const canvasContainer = document.getElementById('canvas-container');
+
+  let renderScale = 1;
+  let canvasW = 0, canvasH = 0;
+  let offsetX = 0, offsetY = 0;
+
+  function resize() {
+    const rect = canvasContainer.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    canvasW = rect.width;
+    canvasH = rect.height;
+    const sx = canvasW / WORLD_W;
+    const sy = canvasH / WORLD_H;
+    renderScale = Math.min(sx, sy);
+    offsetX = (canvasW - WORLD_W * renderScale) / 2;
+    offsetY = (canvasH - WORLD_H * renderScale) / 2;
+  }
+  window.addEventListener('resize', resize);
+
+  function wx(x) { return offsetX + x * renderScale; }
+  function wy(y) { return offsetY + y * renderScale; }
+  function ws(s) { return s * renderScale; }
+
+  const PLATFORMS = [
+    { x1: 0, x2: 240, y: 340 },
+    { x1: 20, x2: 110, y: 280 },
+    { x1: 140, x2: 240, y: 280 },
+    { x1: 0, x2: 90, y: 220 },
+    { x1: 120, x2: 200, y: 220 },
+    { x1: 40, x2: 140, y: 160 },
+    { x1: 170, x2: 240, y: 160 },
+    { x1: 0, x2: 80, y: 100 },
+    { x1: 110, x2: 210, y: 100 },
+    { x1: 30, x2: 160, y: 40 },
+    { x1: 190, x2: 240, y: 40 }
+  ];
+
+  const LADDERS = [
+    { x: 60, y1: 280, y2: 340 },
+    { x: 180, y1: 280, y2: 340 },
+    { x: 40, y1: 220, y2: 280 },
+    { x: 160, y1: 220, y2: 280 },
+    { x: 70, y1: 160, y2: 220 },
+    { x: 180, y1: 160, y2: 220 },
+    { x: 60, y1: 100, y2: 160 },
+    { x: 130, y1: 100, y2: 160 },
+    { x: 200, y1: 100, y2: 160 },
+    { x: 50, y1: 40, y2: 100 },
+    { x: 140, y1: 40, y2: 100 },
+    { x: 210, y1: 40, y2: 100 }
+  ];
+
+  const ITEM_TEMPLATES = [
+    { x: 40, y: 330, type: 'carrot' },
+    { x: 100, y: 330, type: 'fruit' },
+    { x: 160, y: 330, type: 'carrot' },
+    { x: 220, y: 330, type: 'pot' },
+    { x: 35, y: 270, type: 'carrot' },
+    { x: 80, y: 270, type: 'fruit' },
+    { x: 170, y: 270, type: 'carrot' },
+    { x: 210, y: 270, type: 'pot' },
+    { x: 20, y: 210, type: 'pot' },
+    { x: 70, y: 210, type: 'carrot' },
+    { x: 140, y: 210, type: 'fruit' },
+    { x: 180, y: 210, type: 'carrot' },
+    { x: 60, y: 150, type: 'carrot' },
+    { x: 110, y: 150, type: 'pot' },
+    { x: 190, y: 150, type: 'fruit' },
+    { x: 220, y: 150, type: 'carrot' },
+    { x: 20, y: 90, type: 'fruit' },
+    { x: 60, y: 90, type: 'carrot' },
+    { x: 140, y: 90, type: 'pot' },
+    { x: 190, y: 90, type: 'carrot' },
+    { x: 50, y: 30, type: 'carrot' },
+    { x: 100, y: 30, type: 'fruit' },
+    { x: 140, y: 30, type: 'carrot' },
+    { x: 210, y: 30, type: 'pot' }
+  ];
+
+  const TRAP_POSITIONS = [
+    { x: 140, y: 330 }, { x: 60, y: 270 },
+    { x: 130, y: 210 }, { x: 100, y: 150 }, { x: 170, y: 90 }
+  ];
+
+  let player, enemies, items, traps, keys, score, level, lives;
+  let gameRunning = false, bestScore = 0;
+  let invincibleUntil = 0;
+  bestStartEl.textContent = bestScore;
+
+  const GRAVITY = 420;
+  const MOVE_SPEED = 80;
+  const JUMP_POWER = 200;
+  const LADDER_SPEED = 60;
+  const PLAYER_W = 16;
+  const PLAYER_H = 20;
+
+  function findLandingPlatform(xLeft, xRight, prevFeet, curFeet) {
+    if (curFeet < prevFeet) return null;
+    let best = null;
+    for (const p of PLATFORMS) {
+      if (xRight < p.x1 || xLeft > p.x2) continue;
+      if (p.y >= prevFeet - 0.5 && p.y <= curFeet + 0.5) {
+        if (!best || p.y < best.y) best = p;
+      }
+    }
+    return best;
+  }
+
+  function findLadderAt(cx, cy) {
+    for (const l of LADDERS) {
+      if (Math.abs(l.x - cx) < 8 && cy >= l.y1 - 5 && cy <= l.y2 + 5) return l;
+    }
+    return null;
+  }
+
+  function initGame() {
+    player = { x: 20, y: 320, vx: 0, vy: 0,
+      w: PLAYER_W, h: PLAYER_H,
+      onGround: true, onLadder: null,
+      dir: 'right', anim: 0 };
+
+    enemies = [];
+    const numEnemies = Math.min(1 + Math.floor(level / 2), 4);
+    const enemySpawns = [
+      { x: 200, y: 320 }, { x: 50, y: 200 },
+      { x: 180, y: 140 }, { x: 100, y: 80 }
+    ];
+    for (let i = 0; i < numEnemies; i++) {
+      const s = enemySpawns[i];
+      enemies.push({
+        x: s.x, y: s.y,
+        vx: (i % 2 === 0 ? -1 : 1) * 35, vy: 0,
+        w: 14, h: 16, onGround: true,
+        dir: i % 2 === 0 ? 'left' : 'right',
+        anim: 0, jumpTimer: 1 + Math.random()
+      });
+    }
+
+    items = ITEM_TEMPLATES.map(t => ({
+      x: t.x, y: t.y, type: t.type, bounce: Math.random() * Math.PI * 2
+    }));
+    traps = TRAP_POSITIONS.map(t => ({ x: t.x, y: t.y }));
+    keys = { left: false, right: false, up: false, down: false, jump: false, jumpPressed: false };
+    invincibleUntil = 0;
+  }
+
+  function updatePlayer(dt) {
+    if (player.onLadder) {
+      player.vx = 0;
+      player.vy = 0;
+      if (keys.up) player.vy = -LADDER_SPEED;
+      else if (keys.down) player.vy = LADDER_SPEED;
+      player.y += player.vy * dt;
+
+      const l = player.onLadder;
+      if (player.y < l.y1 - 2) {
+        player.y = l.y1 - PLAYER_H;
+        player.onLadder = null;
+        player.vy = 0;
+        player.onGround = true;
+      } else if (player.y + PLAYER_H > l.y2 + 5) {
+        player.y = l.y2 - PLAYER_H;
+        player.onLadder = null;
+        player.onGround = true;
+      }
+
+      if (keys.left || keys.right) {
+        const feet = player.y + PLAYER_H;
+        for (const p of PLATFORMS) {
+          if (Math.abs(feet - p.y) < 3 && p.x1 <= l.x && p.x2 >= l.x) {
+            player.y = p.y - PLAYER_H;
+            player.onLadder = null;
+            player.onGround = true;
+            break;
+          }
+        }
+      }
+
+      if (keys.jumpPressed) {
+        player.onLadder = null;
+        player.vy = -JUMP_POWER * 0.7;
+        keys.jumpPressed = false;
+      }
+      player.anim += dt * 4;
+      return;
+    }
+
+    const cx = player.x + PLAYER_W / 2;
+    const cy = player.y + PLAYER_H / 2;
+
+    if (keys.up) {
+      const ladder = findLadderAt(cx, cy);
+      if (ladder) {
+        player.onLadder = ladder;
+        player.x = ladder.x - PLAYER_W / 2;
+        return;
+      }
+    }
+    if (keys.down && player.onGround) {
+      const feetY = player.y + PLAYER_H;
+      for (const l of LADDERS) {
+        if (Math.abs(l.x - cx) < 8 && Math.abs(l.y1 - feetY) < 3) {
+          player.onLadder = l;
+          player.x = l.x - PLAYER_W / 2;
+          player.y = l.y1;
+          player.onGround = false;
+          player.vy = 0;
+          return;
+        }
+      }
+    }
+
+    if (keys.left) { player.vx = -MOVE_SPEED; player.dir = 'left'; }
+    else if (keys.right) { player.vx = MOVE_SPEED; player.dir = 'right'; }
+    else player.vx = 0;
+
+    if (keys.jumpPressed && player.onGround) {
+      player.vy = -JUMP_POWER;
+      player.onGround = false;
+      playBeep(600, 0.1);
+    }
+    keys.jumpPressed = false;
+
+    player.vy += GRAVITY * dt;
+    if (player.vy > 300) player.vy = 300;
+
+    player.x += player.vx * dt;
+    if (player.x < 0) player.x = 0;
+    if (player.x + PLAYER_W > WORLD_W) player.x = WORLD_W - PLAYER_W;
+
+    const prevFeet = player.y + PLAYER_H;
+    player.y += player.vy * dt;
+    const curFeet = player.y + PLAYER_H;
+
+    if (player.vy > 0) {
+      const platform = findLandingPlatform(player.x, player.x + PLAYER_W, prevFeet, curFeet);
+      if (platform) {
+        player.y = platform.y - PLAYER_H;
+        player.vy = 0;
+        player.onGround = true;
+      } else {
+        player.onGround = false;
+      }
+    } else {
+      player.onGround = false;
+    }
+
+    if (Math.abs(player.vx) > 0) player.anim += dt * 8;
+  }
+
+  function updateEnemy(e, dt) {
+    e.x += e.vx * dt;
+    e.vy += GRAVITY * dt;
+    if (e.vy > 300) e.vy = 300;
+
+    const prevFeet = e.y + e.h;
+    e.y += e.vy * dt;
+    const curFeet = e.y + e.h;
+
+    if (e.vy > 0) {
+      const p = findLandingPlatform(e.x, e.x + e.w, prevFeet, curFeet);
+      if (p) {
+        e.y = p.y - e.h;
+        e.vy = 0;
+        e.onGround = true;
+        if (e.x < p.x1) { e.x = p.x1; e.vx = Math.abs(e.vx); e.dir = 'right'; }
+        else if (e.x + e.w > p.x2) { e.x = p.x2 - e.w; e.vx = -Math.abs(e.vx); e.dir = 'left'; }
+      } else e.onGround = false;
+    } else e.onGround = false;
+
+    if (e.x < 0) { e.x = 0; e.vx = Math.abs(e.vx); e.dir = 'right'; }
+    if (e.x + e.w > WORLD_W) { e.x = WORLD_W - e.w; e.vx = -Math.abs(e.vx); e.dir = 'left'; }
+
+    if (e.onGround) {
+      const feetY = e.y + e.h;
+      let cur = null;
+      for (const p of PLATFORMS) {
+        if (Math.abs(p.y - feetY) < 2 && p.x1 <= e.x + e.w / 2 && p.x2 >= e.x + e.w / 2) {
+          cur = p; break;
+        }
+      }
+      if (cur) {
+        if (e.x <= cur.x1) { e.vx = Math.abs(e.vx); e.dir = 'right'; }
+        else if (e.x + e.w >= cur.x2) { e.vx = -Math.abs(e.vx); e.dir = 'left'; }
+      }
+    }
+
+    e.jumpTimer -= dt;
+    if (e.jumpTimer <= 0 && e.onGround) {
+      e.vy = -150;
+      e.onGround = false;
+      e.jumpTimer = 1.5 + Math.random() * 2;
+    }
+    e.anim += dt * 5;
+  }
+
+  function aabbOverlap(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x &&
+           a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function checkCollisions() {
+    const now = performance.now();
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      const box = { x: it.x - 6, y: it.y - 10, w: 12, h: 10 };
+      if (aabbOverlap(player, box)) {
+        items.splice(i, 1);
+        let pts = 10;
+        if (it.type === 'fruit') pts = 30;
+        else if (it.type === 'pot') pts = 50;
+        score += pts * level;
+        scoreEl.textContent = score;
+        playBeep(it.type === 'pot' ? 1200 : 900, 0.12);
+      }
+    }
+    if (items.length === 0) {
+      level++;
+      levelEl.textContent = level;
+      showLevelUp();
+      initGame();
+      return;
+    }
+    if (now < invincibleUntil) return;
+    for (const e of enemies) {
+      if (aabbOverlap(player, e)) { hitPlayer(); return; }
+    }
+    for (const t of traps) {
+      const box = { x: t.x - 5, y: t.y - 5, w: 10, h: 6 };
+      if (aabbOverlap(player, box)) { hitPlayer(); return; }
+    }
+  }
+
+  function hitPlayer() {
+    lives--;
+    lifeEl.textContent = '♥'.repeat(Math.max(0, lives));
+    playBeep(150, 0.3);
+    invincibleUntil = performance.now() + 1500;
+    if (lives <= 0) { gameOver(); return; }
+    player.x = 20; player.y = 320;
+    player.vx = 0; player.vy = 0;
+    player.onLadder = null; player.onGround = true;
+  }
+
+  function draw() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+    const now = performance.now();
+
+    ctx.strokeStyle = '#22d3ee';
+    ctx.lineWidth = Math.max(1, ws(1.5));
+    for (const l of LADDERS) {
+      const x1 = wx(l.x - 4);
+      const x2 = wx(l.x + 4);
+      const y1 = wy(l.y1);
+      const y2 = wy(l.y2);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1); ctx.lineTo(x1, y2);
+      ctx.moveTo(x2, y1); ctx.lineTo(x2, y2);
+      ctx.stroke();
+      const rungs = Math.floor((l.y2 - l.y1) / 5);
+      for (let i = 0; i <= rungs; i++) {
+        const ry = wy(l.y1 + i * 5);
+        ctx.beginPath();
+        ctx.moveTo(x1, ry); ctx.lineTo(x2, ry);
+        ctx.stroke();
+      }
+    }
+
+    for (const p of PLATFORMS) {
+      const x = wx(p.x1);
+      const y = wy(p.y);
+      const w = ws(p.x2 - p.x1);
+      const h = ws(4);
+      ctx.fillStyle = '#22d3ee';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#a5f3fc';
+      ctx.fillRect(x, y, w, ws(1));
+      ctx.fillStyle = '#0e7490';
+      const dotStep = ws(4);
+      for (let dx = 0; dx < w; dx += dotStep) {
+        ctx.fillRect(x + dx, y + ws(2), ws(1.5), ws(1));
+      }
+    }
+
+    for (const it of items) {
+      it.bounce += 0.1;
+      const bY = Math.sin(it.bounce) * 1;
+      const ix = wx(it.x);
+      const iy = wy(it.y + bY);
+      if (it.type === 'carrot') drawCarrot(ix, iy);
+      else if (it.type === 'fruit') drawFruit(ix, iy);
+      else if (it.type === 'pot') drawPot(ix, iy);
+    }
+
+    for (const t of traps) drawTrap(wx(t.x), wy(t.y));
+    for (const e of enemies) drawEnemy(wx(e.x), wy(e.y), ws(e.w), ws(e.h), e.dir, e.anim);
+
+    const blink = now < invincibleUntil && Math.floor(now / 80) % 2 === 0;
+    if (!blink) {
+      drawRaccoon(wx(player.x), wy(player.y), ws(PLAYER_W), ws(PLAYER_H),
+                  player.dir, player.anim, player.onLadder !== null);
+    }
+  }
+
+  function drawCarrot(cx, cy) {
+    const s = renderScale;
+    ctx.fillStyle = '#fb923c';
+    ctx.beginPath();
+    ctx.moveTo(cx - 3*s, cy - 2*s);
+    ctx.lineTo(cx + 3*s, cy - 2*s);
+    ctx.lineTo(cx, cy + 4*s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(cx - 3*s, cy - 4*s, 2*s, 2*s);
+    ctx.fillRect(cx, cy - 5*s, 2*s, 3*s);
+    ctx.fillRect(cx + 2*s, cy - 4*s, 2*s, 2*s);
+  }
+
+  function drawFruit(cx, cy) {
+    const s = renderScale;
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3.5*s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fca5a5';
+    ctx.fillRect(cx - 2*s, cy - 2*s, 1.5*s, 1.5*s);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(cx, cy - 5*s, 1.5*s, 2*s);
+  }
+
+  function drawPot(cx, cy) {
+    const s = renderScale;
+    ctx.fillStyle = '#fde047';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 1*s, 3.5*s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(cx - 2*s, cy - 5*s, 4*s, 1.5*s);
+    ctx.fillStyle = '#7f1d1d';
+    ctx.fillRect(cx - 1*s, cy - 2*s, 2*s, 1*s);
+    ctx.fillRect(cx, cy - 1*s, 1*s, 1*s);
+    ctx.fillRect(cx, cy + 1*s, 1*s, 1*s);
+  }
+
+  function drawTrap(cx, cy) {
+    const s = renderScale;
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.moveTo(cx - 3*s, cy);
+    ctx.lineTo(cx + 3*s, cy);
+    ctx.lineTo(cx, cy - 5*s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#7f1d1d';
+    ctx.lineWidth = s;
+    ctx.stroke();
+  }
+
+  function drawEnemy(x, y, w, h, dir, anim) {
+    const s = renderScale;
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(x + 2*s, y + 4*s, w - 4*s, h - 6*s);
+    ctx.fillStyle = '#16a34a';
+    ctx.fillRect(x, y, w, h - 8*s);
+    ctx.fillStyle = '#ecfccb';
+    ctx.fillRect(x + 2*s, y - 1*s, 3*s, 3*s);
+    ctx.fillRect(x + w - 5*s, y - 1*s, 3*s, 3*s);
+    ctx.fillStyle = '#000';
+    const eyeOff = dir === 'left' ? -0.5*s : 0.5*s;
+    ctx.fillRect(x + 3*s + eyeOff, y, 1*s, 1*s);
+    ctx.fillRect(x + w - 4*s + eyeOff, y, 1*s, 1*s);
+    ctx.fillStyle = '#166534';
+    ctx.fillRect(x + 3*s, y + 4*s, w - 6*s, 1*s);
+    const legY = Math.sin(anim) > 0 ? y + h - 2*s : y + h - 4*s;
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(x + 1*s, legY, 2*s, 3*s);
+    ctx.fillRect(x + w - 3*s, legY, 2*s, 3*s);
+  }
+
+  function drawRaccoon(x, y, w, h, dir, anim, onLadder) {
+    const s = renderScale;
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(x + 2*s, y + 8*s, w - 4*s, h - 10*s);
+    ctx.fillStyle = '#9ca3af';
+    ctx.fillRect(x + 1*s, y, w - 2*s, 10*s);
+    ctx.fillStyle = '#4b5563';
+    ctx.fillRect(x + 1*s, y, 3*s, 3*s);
+    ctx.fillRect(x + w - 4*s, y, 3*s, 3*s);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(x + 2*s, y + 3*s, w - 4*s, 3*s);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + 4*s, y + 4*s, 1.5*s, 1.5*s);
+    ctx.fillRect(x + w - 5.5*s, y + 4*s, 1.5*s, 1.5*s);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(x + w/2 - 1*s, y + 7*s, 2*s, 1.5*s);
+    const legOffset = Math.sin(anim) * s;
+    ctx.fillStyle = '#7f1d1d';
+    if (onLadder) {
+      ctx.fillRect(x + 3*s, y + h - 3*s, 3*s, 3*s);
+      ctx.fillRect(x + w - 6*s, y + h - 3*s, 3*s, 3*s);
+    } else {
+      ctx.fillRect(x + 3*s, y + h - 3*s + legOffset, 3*s, 3*s);
+      ctx.fillRect(x + w - 6*s, y + h - 3*s - legOffset, 3*s, 3*s);
+    }
+    const tailX = dir === 'left' ? x + w - 1*s : x - 2*s;
+    ctx.fillStyle = '#9ca3af';
+    ctx.fillRect(tailX, y + 8*s, 3*s, 2*s);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(tailX, y + 9*s, 3*s, 1*s);
+  }
+
+  let lastTime = 0;
+  function loop(now) {
+    if (!gameRunning) return;
+    let dt = lastTime ? (now - lastTime) / 1000 : 1 / 60;
+    if (dt > 0.05) dt = 0.05;
+    lastTime = now;
+    updatePlayer(dt);
+    for (const e of enemies) updateEnemy(e, dt);
+    checkCollisions();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playBeep(freq, dur) {
+    if (!audioCtx) return;
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + dur);
+    } catch(e){}
+  }
+
+  function showLevelUp() {
+    levelUpEl.textContent = 'LEVEL ' + level + '!';
+    levelUpEl.classList.remove('show');
+    void levelUpEl.offsetWidth;
+    levelUpEl.classList.add('show');
+    playBeep(600, 0.15);
+    setTimeout(() => playBeep(800, 0.15), 150);
+    setTimeout(() => playBeep(1000, 0.2), 300);
+  }
+
+  function gameOver() {
+    gameRunning = false;
+    playBeep(200, 0.3);
+    setTimeout(() => playBeep(150, 0.3), 200);
+    setTimeout(() => playBeep(100, 0.5), 400);
+    if (score > bestScore) bestScore = score;
+    finalScoreEl.textContent = score;
+    bestEndEl.textContent = bestScore;
+    bestStartEl.textContent = bestScore;
+    topScoreEl.textContent = bestScore;
+    gameoverScreen.classList.remove('hidden');
+  }
+
+  function startGame() {
+    score = 0; level = 1; lives = 3;
+    scoreEl.textContent = '0';
+    levelEl.textContent = '1';
+    lifeEl.textContent = '♥♥♥';
+    topScoreEl.textContent = bestScore;
+    initGame();
+    gameRunning = true;
+    lastTime = 0;
+    resize();
+    requestAnimationFrame(loop);
+  }
+
+  startBtn.addEventListener('click', () => {
+    initAudio();
+    startScreen.classList.add('hidden');
+    gameoverScreen.classList.add('hidden');
+    startGame();
+  });
+
+  retryBtn.addEventListener('click', () => {
+    initAudio();
+    gameoverScreen.classList.add('hidden');
+    startGame();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!gameRunning) return;
+    if (e.key === 'ArrowLeft' || e.key === 'a') { keys.left = true; e.preventDefault(); }
+    else if (e.key === 'ArrowRight' || e.key === 'd') { keys.right = true; e.preventDefault(); }
+    else if (e.key === 'ArrowUp' || e.key === 'w') { keys.up = true; e.preventDefault(); }
+    else if (e.key === 'ArrowDown' || e.key === 's') { keys.down = true; e.preventDefault(); }
+    else if (e.key === ' ' || e.key === 'z' || e.key === 'x') {
+      if (!keys.jump) keys.jumpPressed = true;
+      keys.jump = true;
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    else if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+    else if (e.key === 'ArrowUp' || e.key === 'w') keys.up = false;
+    else if (e.key === 'ArrowDown' || e.key === 's') keys.down = false;
+    else if (e.key === ' ' || e.key === 'z' || e.key === 'x') keys.jump = false;
+  });
+
+  document.querySelectorAll('.ctrl-btn').forEach(btn => {
+    const key = btn.dataset.key;
+    const press = (e) => {
+      e.preventDefault();
+      initAudio();
+      if (key === 'jump' && !keys.jump) keys.jumpPressed = true;
+      keys[key] = true;
+    };
+    const release = (e) => {
+      e.preventDefault();
+      keys[key] = false;
+    };
+    btn.addEventListener('touchstart', press, { passive: false });
+    btn.addEventListener('touchend', release, { passive: false });
+    btn.addEventListener('touchcancel', release);
+    btn.addEventListener('mousedown', press);
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
+  });
+
+  resize();
+  setTimeout(resize, 100);
+})();
+</script>
+</body>
+</html>
